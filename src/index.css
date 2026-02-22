@@ -41,6 +41,28 @@
     --nova-warning: 38 92% 50%;
     --nova-info: 217 91% 60%;
 
+    /* Google-style module colors */
+    --module-sales: 217 89% 51%;
+    --module-sales-light: 217 89% 96%;
+    --module-products: 262 52% 56%;
+    --module-products-light: 262 52% 96%;
+    --module-inventory: 142 71% 40%;
+    --module-inventory-light: 142 71% 96%;
+    --module-customers: 24 95% 53%;
+    --module-customers-light: 24 95% 96%;
+    --module-invoicing: 340 65% 52%;
+    --module-invoicing-light: 340 65% 96%;
+    --module-suppliers: 199 89% 44%;
+    --module-suppliers-light: 199 89% 96%;
+    --module-cash: 45 93% 47%;
+    --module-cash-light: 45 93% 96%;
+    --module-expenses: 0 72% 51%;
+    --module-expenses-light: 0 72% 96%;
+    --module-reports: 262 83% 58%;
+    --module-reports-light: 262 83% 96%;
+    --module-accounting: 173 80% 36%;
+    --module-accounting-light: 173 80% 96%;
+
     /* Sidebar */
     --sidebar-background: 220 14% 98%;
     --sidebar-foreground: 220 9% 36%;
@@ -84,6 +106,28 @@
     --nova-success: 142 71% 40%;
     --nova-warning: 38 80% 45%;
     --nova-info: 217 80% 55%;
+
+    /* Google-style module colors (dark) */
+    --module-sales: 217 89% 61%;
+    --module-sales-light: 217 40% 15%;
+    --module-products: 262 52% 66%;
+    --module-products-light: 262 30% 15%;
+    --module-inventory: 142 71% 50%;
+    --module-inventory-light: 142 30% 15%;
+    --module-customers: 24 95% 63%;
+    --module-customers-light: 24 40% 15%;
+    --module-invoicing: 340 65% 62%;
+    --module-invoicing-light: 340 30% 15%;
+    --module-suppliers: 199 89% 54%;
+    --module-suppliers-light: 199 40% 15%;
+    --module-cash: 45 93% 57%;
+    --module-cash-light: 45 40% 15%;
+    --module-expenses: 0 72% 61%;
+    --module-expenses-light: 0 30% 15%;
+    --module-reports: 262 83% 68%;
+    --module-reports-light: 262 40% 15%;
+    --module-accounting: 173 80% 46%;
+    --module-accounting-light: 173 30% 15%;
 
     --sidebar-background: 224 15% 6%;
     --sidebar-foreground: 220 14% 80%;
