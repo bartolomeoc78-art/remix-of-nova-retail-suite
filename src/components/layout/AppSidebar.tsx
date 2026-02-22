@@ -12,6 +12,7 @@ import {
   BookOpen,
   Settings,
   Bot,
+  Lightbulb,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -56,6 +57,7 @@ const reportsNav: NavItem[] = [
   { title: "Informes", url: "/reports", icon: BarChart3, color: "text-module-reports", bgColor: "bg-module-reports-light" },
   { title: "Contabilidad", url: "/accounting", icon: BookOpen, color: "text-module-accounting", bgColor: "bg-module-accounting-light" },
   { title: "Asistentes IA", url: "/assistants", icon: Bot, color: "text-module-products", bgColor: "bg-module-products-light" },
+  { title: "Recomendaciones", url: "/recommendations", icon: Lightbulb, color: "text-module-customers", bgColor: "bg-module-customers-light" },
   { title: "Configuración", url: "/settings", icon: Settings, color: "text-muted-foreground", bgColor: "bg-secondary" },
 ];
 
