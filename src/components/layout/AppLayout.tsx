@@ -2,8 +2,10 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Outlet, useLocation } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
-import { Search } from "lucide-react";
+import { Search, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const routeTitles: Record<string, string> = {
   "/": "Dashboard",
@@ -21,8 +23,10 @@ const routeTitles: Record<string, string> = {
 };
 
 export function AppLayout() {
+  const { session, signOut } = useAuth();
   const location = useLocation();
   const title = routeTitles[location.pathname] || "NovaSystem";
+  const userInitial = (session?.user?.email?.[0] || "U").toUpperCase();
 
   return (
     <SidebarProvider>
@@ -44,8 +48,11 @@ export function AppLayout() {
                   className="w-64 pl-9 h-9 bg-secondary border-0 text-sm"
                 />
               </div>
+              <Button variant="ghost" size="icon" onClick={signOut} title="Cerrar sesión">
+                <LogOut className="h-4 w-4" />
+              </Button>
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-xs font-semibold text-primary">A</span>
+                <span className="text-xs font-semibold text-primary">{userInitial}</span>
               </div>
             </div>
           </header>
