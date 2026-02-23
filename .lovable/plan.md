@@ -1,206 +1,130 @@
 
 
-# 🚀 NovaSystem — Plan de Implementación (Arquitectura Independiente)
+# Plan: Importar Datos Reales de Ecoland
 
-## Arquitectura de Despliegue
-- **Frontend**: React (Vite) → repositorio GitHub → deploy en **Cloudflare Pages**
-- **Backend/BD**: **Supabase** (PostgreSQL, Auth, Edge Functions, Storage, RLS) — tu cuenta propia
-- **Sincronización E-commerce**: Cloudflare Workers + webhooks hacia Supabase Edge Functions
-- **Lovable**: solo entorno de desarrollo. El código vive en GitHub y no depende de Lovable en producción.
+## Resumen
 
-### ⚠️ Requisito Previo: Conexión Supabase
-Antes de la Fase 1, conectaremos tu cuenta de Supabase para crear tablas, RLS, edge functions y storage directamente en tu instancia.
+Importaremos los datos reales de tu tienda ecologica **Ecoland** (antes "Miguel Angel Velasco Sanz") desde los 3 PDFs que has subido. La base de datos esta completamente vacia, asi que empezamos desde cero.
 
----
+## Datos extraidos de los PDFs
 
-## Diseño Visual: Limpio tipo Google
-- Interfaz **liviana a la vista**: fondos blancos/grises muy claros, tipografía Inter/system, sin saturación
-- Paleta inspirada en **Google Material + acentos Nova** (azul/morado suave solo para acciones y estados)
-- Espaciado generoso, tarjetas con sombras sutiles, bordes casi invisibles
-- Iconografía Lucide (línea fina), sin ruido visual
-- Modo oscuro opcional con grises neutros
-- TPV: interfaz minimalista ultrarrápida, contraste alto solo donde importa
+| Documento | Contenido | Volumen |
+|-----------|-----------|---------|
+| ResumenArticulosGeneral | ~530 productos con codigo, nombre, unidades vendidas e importe | Ene 2024 - Feb 2026 |
+| ResumenCaja_10_anos | Resumen diario de caja (efectivo + tarjeta por dia) | Ene 2016 - Feb 2026 |
+| ResumenTicketsBarra | Tickets individuales con base, IVA 10%, total y forma pago | Ene 2024 - Feb 2026 |
+
+**Totales**: 82.803 unidades vendidas / 329.335,73 EUR (periodo 2024-2026)
 
 ---
 
-## FASE 1 — Cimientos: Layout, Base de Datos y Catálogo
+## Paso 1: Configuracion empresa + tipos IVA + serie facturacion
 
-### 1.1 Layout Premium y Navegación
-- Sidebar colapsable + topbar con breadcrumbs y búsqueda global
-- Logo NovaSystem SVG minimalista
-- Configuración empresa: nombre, dirección (Valladolid), NIF, logo personalizable (Supabase Storage)
+Una sola migracion SQL que inserta:
 
-### 1.2 Base de Datos Completa en Supabase
-- Todas las entidades: Products, Categories, Brands, Suppliers, Customers, Sales, SaleLines, Refunds, Invoices, CreditNotes, InventoryMovements, InventoryLots, StockCountSessions, CashSessions, CashMovements, BankAccounts, BankMovements, Expenses, Attachments, TaxRates, AccountingAccounts (PGC), JournalEntries, JournalEntryLines, EcommerceSyncEvents, AuditLog
-- Roles en tabla separada (user_roles) con enum: admin, manager, cajero, inventario, contable, auditor
-- RLS con función `has_role()` security definer en todas las tablas
-- Supabase Auth (email + contraseña)
-- Supabase Storage: imágenes productos, adjuntos gastos, logos
+- **company_settings**: nombre "Ecoland", C/ Recondo 5, Valladolid, NIF 12224944F
+- **tax_rates**: IVA 10% reducido (alimentacion, por defecto) + IVA 21% general
+- **invoice_series**: Serie "TB" (tickets barra) tipo simplificada, comenzando en 175497
 
-### 1.3 Productos y Catálogo
-- CRUD: SKU, EAN, nombre, marca, categoría, proveedor, precios, IVA (4/10/21), coste, stock mínimo, ubicación
-- Toggle lotes/caducidad por producto
-- Historial de cambios auditado
-- Etiquetas (eco, sin gluten, vegano)
-- Imagen por producto
-- Import/Export CSV
+## Paso 2: Categorias y marcas
 
-### 1.4 Datos Demo
-- 100+ productos con categorías, marcas, proveedores
-- Historial de ventas simulado de 1 mes
+Crear **18 categorias** basadas en los rangos de codigo del TPV:
 
----
+| Rango | Categoria |
+|-------|-----------|
+| 1xxx | Frutas y Verduras Frescas |
+| 2xxx | Aceites, Vinagres y Sales |
+| 3xxx | Infusiones, Tes, Cafes y Especias |
+| 4xxx | Cereales, Mueslis y Semillas |
+| 5xxx | Zumos, Aguas y Bebidas |
+| 6xxx | Frutos Secos y Aperitivos |
+| 7xxx | Conservas, Sopas y Pates |
+| 8xxx | Pastas, Salsas, Dulces y Chocolates |
+| 9xxx | Lacteos, Huevos y Bebidas Vegetales |
+| 10xxx | Panaderia, Galletas y Harinas |
+| 11xxx | Jardineria |
+| 12xxx-15xxx | Higiene y Cuidado Personal |
+| 18xxx | Carnes Ecologicas |
+| 20xxx | Pasta, Arroz y Legumbres |
+| 21xxx | Apicultura (Polen y Miel) |
+| 22xxx | Limpieza Ecologica |
+| 23xxx | Suplementos y Dietetica |
+| 24xxx-26xxx | Varios y Bazar |
 
-## FASE 2 — Operaciones Core: TPV, Inventario, Clientes
+Crear **~30 marcas** principales: Herbes del Moli, Naturgreen, Ecosana, Biocop, Drasanvi, Granero Integral, Castagno, Natursoy, Weleda, Solyeco, Pan do Mar, Ecoflor, Biogredos, Barnhouse, Gumendi, Paño Nature, Ecomil, etc.
 
-### 2.1 TPV / Punto de Venta
-- Interfaz ultrarrápida para escáner código barras (HID/USB, foco en campo scan)
-- Búsqueda por nombre/SKU/EAN
-- Carrito: cantidades, descuentos línea/ticket, IVA por línea, totales
-- Pagos: efectivo, tarjeta, Bizum, transferencia, mixto
-- Ticket PDF (factura simplificada)
-- Devoluciones parcial/total → rectificativa + retorno stock + asiento contable
+## Paso 3: Productos (~530 productos)
 
-### 2.2 Inventario
-- Movimientos automáticos por ventas/compras/devoluciones/e-commerce
-- Ajustes manuales: motivo obligatorio + usuario + auditoría
-- Recuento cíclico: sesión → conteo → comparación → aprobación → ajustes
-- Valoración PMP/FIFO configurable
-- Trazabilidad por lote, informe existencias por fecha
+Se insertaran en **varias migraciones** (debido a limites de tamano) los ~530 productos del ResumenArticulosGeneral.pdf con:
 
-### 2.3 Clientes (B2C/B2B)
-- Datos fiscales (NIF/CIF), no obligatorio para vender
-- Histórico compras/facturas/devoluciones
-- Cuentas por cobrar si crédito
+- **sku**: codigo del TPV (1001, 2004, 3196, etc.)
+- **name**: descripcion exacta del PDF
+- **sale_price**: importe / unidades (precio medio real de venta)
+- **cost_price**: estimado al 55-65% del precio venta segun categoria (margen tipico tienda ecologica)
+- **stock_on_hand**: stock inicial estimado basado en velocidad de venta
+- **category_id**: segun rango de codigo
+- **brand_id**: detectado automaticamente del nombre del producto
+- **tax_rate_id**: 10% para alimentacion (mayoria), 21% para higiene/limpieza/suplementos
+- **active**: true
+- **unit**: "kg" para productos a granel (1xxx), "uds" para el resto
 
----
+Se dividiran en 5-6 migraciones de ~100 productos cada una para evitar timeouts.
 
-## FASE 3 — Facturación y Proveedores
+## Paso 4: Tickets de venta (ultimos 3 meses)
 
-### 3.1 Facturación Española
-- Series y numeración correlativa automática
-- Simplificadas vs completas, rectificativas con referencia a original
-- Desglose IVA 4/10/21, datos emisor configurables
-- PDF profesional corporativo
-- Export CSV/Excel/PDF
+Desde ResumenTicketsBarra.pdf, importar los tickets mas recientes (~500 tickets de Dic 2025 - Feb 2026) como registros en la tabla `sales`:
 
-### 3.2 Proveedores y Compras
-- Dos tipos: Manual (alertas) y Auto-email (genera texto pedido)
-- Flujo: Pedido → Enviado → En Camino (🚛) → Recibido → Facturado
-- Recepción parcial + lotes/caducidad
-- Facturas proveedor con IVA soportado, vencimiento, estado pago
-- Cuentas por pagar con agenda y alertas
-- Registro incidencias
+- **sale_number**: numero del ticket (TB175497, etc.)
+- **subtotal**: base imponible
+- **tax_total**: importe IVA (siempre ~10%)
+- **total**: total del ticket
+- **payment_method**: efectivo (forma pago = 1) o tarjeta (forma pago = 2)
+- **created_at**: fecha del ticket
+- **status**: completada
 
----
+No se insertaran sale_lines individuales (el PDF no tiene detalle por linea), solo el ticket con su total.
 
-## FASE 4 — Caja, Bancos y Gastos
+## Paso 5: Sesiones de caja (ultimo ano)
 
-### 4.1 Caja Diaria
-- Apertura, ingresos, retiradas, gastos, cierre
-- Arqueo: esperado vs contado, descuadre con explicación obligatoria
-- Comisiones TPV, reporte diario/mensual
+Desde ResumenCaja_10_anos.pdf, crear sesiones de caja diarias para el ultimo ano (~300 dias):
 
-### 4.2 Bancos
-- Movimientos manuales o importados CSV
-- Conciliación bancaria con match sugerido
+- Cada dia = 1 registro en `cash_sessions` (abierta + cerrada)
+- Movimientos en `cash_movements`: efectivo y tarjeta separados
+- opening_amount, expected_amount calculado de los totales diarios
 
-### 4.3 Gastos
-- Categorías contables, IVA soportado, método pago
-- Adjuntos en Supabase Storage
+## Paso 6: Proveedores principales
 
----
+Crear ~10 proveedores basados en las marcas mas recurrentes:
 
-## FASE 5 — Contabilidad PGC Completa
-
-### 5.1 Plan Contable PGC Pymes
-- Tabla cuentas contables en Supabase con cuentas predefinidas (700, 600, 472, 477, 570, 572, 400, 430, 621, 628, 629, etc.)
-- Mapeo categorías → cuentas, métodos pago → cuentas
-
-### 5.2 Motor de Asientos Automáticos (Edge Function)
-- Asientos dobles balanceados para: ventas, devoluciones, compras, gastos, pagos, cobros
-- COGS automático
-- Estados: Borrador → Confirmado → Bloqueado (nunca borrar, solo ajuste)
-
-### 5.3 Libros y Reportes
-- Libro Diario, Mayor, Balance de Situación, P&G
-- Export CSV/Excel para gestoría
-
-### 5.4 Cierre y Fiscalidad
-- Checklist cierre mensual/trimestral
-- Libros IVA repercutido/soportado
-- Reportes Modelo 303, 390, 347
+- Biocop/Ecosana (distribuidor principal)
+- Drasanvi (suplementos)
+- Naturgreen/Natursoy (alimentacion vegetal)
+- Herbes del Moli (infusiones)
+- Paño Nature (frutos secos a granel)
+- La Presa / BEEE (lacteos de cabra, Valladolid)
+- Crica (leche fresca)
+- Biogredos (panaderia)
+- Castagno (pasta italiana)
+- Solyeco (limpieza)
 
 ---
 
-## FASE 6 — Dashboard Ejecutivo e Informes
+## Resultado esperado
 
-### 6.1 Dashboard KPIs
-- Ventas hoy/semana/mes, margen bruto/neto, COGS, stock crítico, rotación, caja, saldo bancos, cuentas cobrar/pagar, IVA trimestral, top productos/categorías, merma
-- Alertas inteligentes: stock bajo, caducidades, facturas vencidas, descuadres, margen anómalo, variaciones demanda
-- Acciones rápidas: Nueva venta, Crear pedido, Registrar recepción, Exportar PDF, Abrir asistente
+Tras la importacion completa:
 
-### 6.2 Módulo Informes (refresh cada 12h)
-- Ventas por periodo/categoría/marca/producto, métodos pago, márgenes, rotación, proveedores
+- **Dashboard**: graficos de ventas reales, KPIs con datos de 2+ anos
+- **Catalogo**: ~530 productos ecologicos reales organizados en 18 categorias
+- **Ventas**: ~500 tickets recientes con metodo de pago y totales
+- **Caja**: sesiones de caja diarias con datos reales
+- **Proveedores**: 10 proveedores principales identificados
+- **Asistentes IA**: datos reales para dar recomendaciones utiles
+- **Recomendaciones**: scoring de proveedores y analisis de productos con datos reales
 
-### 6.3 PDF Profesional "Estudio de Mercado"
-- Formato inspirado en los PDFs proporcionados: portada, índice, resumen ejecutivo, análisis ventas (gráficas), distribución categorías, top productos, financiero, recomendaciones estratégicas, plan acción (7-14 / 30-60 / 90 días)
+## Detalles tecnicos
 
----
-
-## FASE 7 — Integración E-Commerce Bidireccional
-
-### 7.1 Sync Service (Edge Functions Supabase)
-- Webhooks seguros: API Key + HMAC + rate limiting
-- Endpoints: order-created, order-updated, stock-updated, product-updated
-- Logs con reintentos
-
-### 7.2 Sincronización
-- NovaSystem = source of truth para stock
-- Mapeo por SKU compartido
-- Bidireccional: e-commerce → Supabase y Supabase → e-commerce
-- Job reconciliación como fallback
-
----
-
-## FASE 8 — Inteligencia, Asistentes y Recomendaciones
-
-### 8.1 Scoring Proveedores (0-100)
-- 8 dimensiones ponderadas, señales rojas, fortalezas/debilidades
-- Proveedores recomendados por IA (investigación web, prioridad cercanía Valladolid)
-
-### 8.2 Recomendaciones Negocio
-- Segmentación clientes RFM, cross-sell/upsell, sustituciones inteligentes
-- Alertas slow-moving (180 días), Centro de Acción con botones ejecutables
-- Recomendaciones operativas de compra
-
-### 8.3 Tres Asistentes IA (iconos distintos)
-- **Eco-Coach NovaSystem**: operaciones, tool-calling (crear pedidos, recepciones, promos, packs)
-- **ECO-OPS**: auditoría proveedores, scoring, planes negociación, plantillas email
-- **Eco-Coach Fiscal**: panel fiscal, calendario modelos 303/390/130/111, calculadoras IVA/IRPF, exportar libros IVA
-
----
-
-## FASE 9 — Seguridad, Auditoría, PWA y Deploy
-
-### 9.1 Roles y Permisos (RLS Supabase)
-- user_roles con `has_role()` security definer
-- Admin, Manager, Cajero, Inventario, Contable, Auditor (solo lectura)
-- Permisos granulares por módulo
-
-### 9.2 Auditoría Completa
-- AuditLog con triggers automáticos en Supabase
-- No borrado de documentos confirmados, solo rectificar/anular
-
-### 9.3 PWA
-- Manifest, service worker, offline básico, icono instalable
-
-### 9.4 Despliegue Independiente
-- Frontend en Cloudflare Pages desde GitHub
-- Backend 100% en tu Supabase
-- Variables de entorno en Cloudflare
-- Sin dependencia de Lovable en producción
-
-### 9.5 README Interno
-- Documentación en la app: venta, devolución, compra, cierre caja, IVA, informes, export gestoría
-
+- Se necesitaran **~10 migraciones SQL** secuenciales dado el volumen de datos
+- Los precios del PDF usan formato espanol (punto como separador de miles, coma como decimal) -- se convertiran a numeros
+- Se creara un user_id temporal para las ventas (se actualizara cuando el admin se registre)
+- Todas las migraciones son idempotentes (usan INSERT con ON CONFLICT o verificaciones)
+- El paso 1 tambien configura el plan contable PGC basico para que la contabilidad funcione
